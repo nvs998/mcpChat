@@ -1,111 +1,63 @@
-# MCP Chat
+# mcpChat
 
-MCP Chat is a command-line interface application that enables interactive chat capabilities with AI models through the Anthropic API. The application supports document retrieval, command-based prompts, and extensible tool integrations via the MCP (Model Control Protocol) architecture.
+A command-line AI chat application that lets you interact with documents using Claude. Built on the MCP (Model Context Protocol) architecture, it connects an AI-powered chat interface to a document server that exposes tools, resources, and prompt templates.
 
-## Prerequisites
+## Overview
 
-- Python 3.9+
-- Anthropic API Key
+mcpChat implements the complete MCP architecture — a custom MCP server that exposes tools, resources, and prompt templates, paired with a custom MCP client that connects to it over stdio transport. The client feeds retrieved context into a Claude-powered conversational loop, all surfaced through a rich terminal interface.
+
+## MCP Architecture
+
+### MCP Server
+Built using FastMCP, the server exposes three categories of MCP primitives:
+
+- **Tools** — `read_document` and `edit_document` allow Claude to read and modify documents during a conversation
+- **Resources** — URI-addressable endpoints (`docs://documents`, `docs://documents/{doc_id}`) that the client can fetch directly
+- **Prompts** — reusable prompt templates (e.g. `format`) that inject structured instructions into the message history
+
+### MCP Client
+A custom `MCPClient` class manages the full lifecycle of an MCP session:
+
+- Spawns the server as a subprocess and connects via stdio transport
+- Initializes and holds a `ClientSession` for the duration of the app
+- Exposes typed methods for `list_tools`, `call_tool`, `list_prompts`, `get_prompt`, and `read_resource`
+
+Multiple MCP clients can be registered simultaneously, enabling tool aggregation across servers.
+
+## Features
+
+- **Document-aware chat** — reference any document in your query using `@filename` and its content is automatically injected as context
+- **Slash commands** — run predefined prompt templates (e.g. `/format report.pdf`) directly from the CLI
+- **Tab completion** — autocomplete for `@documents` and `/commands` powered by `prompt_toolkit`
+- **Multi-server support** — pass additional MCP server scripts as CLI arguments to extend available tools
+
+## How it works
+
+The app runs two components side by side:
+
+- **MCP Server** — manages a document store and exposes `read_document` and `edit_document` tools, document resources, and prompt templates
+- **MCP Client + Claude** — the CLI connects to the server over stdio, retrieves context, and sends messages to the Anthropic API
+
+When you type a message, the app resolves any `@document` references, builds a context-aware prompt, and streams the response from Claude back to the terminal.
 
 ## Setup
 
-### Step 1: Configure the environment variables
-
-1. Create or edit the `.env` file in the project root and verify that the following variables are set correctly:
+1. Create a `.env` file in the project root:
 
 ```
-ANTHROPIC_API_KEY=""  # Enter your Anthropic API secret key
+ANTHROPIC_API_KEY="your-api-key"
+CLAUDE_MODEL="claude-sonnet-4-6"
 ```
 
-### Step 2: Install dependencies
-
-#### Option 1: Setup with uv (Recommended)
-
-[uv](https://github.com/astral-sh/uv) is a fast Python package installer and resolver.
-
-1. Install uv, if not already installed:
-
-```bash
-pip install uv
-```
-
-2. Create and activate a virtual environment:
+2. Install dependencies and run:
 
 ```bash
 uv venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
-
-3. Install dependencies:
-
-```bash
+source .venv/bin/activate
 uv pip install -e .
-```
-
-4. Run the project
-
-```bash
 uv run main.py
 ```
 
-#### Option 2: Setup without uv
+## Author
 
-1. Create and activate a virtual environment:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
-
-2. Install dependencies:
-
-```bash
-pip install anthropic python-dotenv prompt-toolkit "mcp[cli]==1.8.0"
-```
-
-3. Run the project
-
-```bash
-python main.py
-```
-
-## Usage
-
-### Basic Interaction
-
-Simply type your message and press Enter to chat with the model.
-
-### Document Retrieval
-
-Use the @ symbol followed by a document ID to include document content in your query:
-
-```
-> Tell me about @deposition.md
-```
-
-### Commands
-
-Use the / prefix to execute commands defined in the MCP server:
-
-```
-> /summarize deposition.md
-```
-
-Commands will auto-complete when you press Tab.
-
-## Development
-
-### Adding New Documents
-
-Edit the `mcp_server.py` file to add new documents to the `docs` dictionary.
-
-### Implementing MCP Features
-
-To fully implement the MCP features:
-
-1. Complete the TODOs in `mcp_server.py`
-2. Implement the missing functionality in `mcp_client.py`
-
-### Linting and Typing Check
-
-There are no lint or type checks implemented.
+Naveen Soni
