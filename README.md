@@ -58,6 +58,6 @@ uv pip install -e .
 uv run main.py
 ```
 
-## Author
+## 👤 Author
 
 Naveen Soni
